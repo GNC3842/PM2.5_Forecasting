@@ -1,0 +1,25 @@
+# Secrets
+.env
+
+# Données : brutes et dérivées hors dépôt tant que l'enseignant n'a pas répondu
+# sur la taille du zip et l'inclusion des données. Les dossiers sont conservés via .gitkeep.
+data/raw/*/*
+data/interim/*
+data/processed/*
+!.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Système / éditeurs
+.DS_Store
+.vscode/
+.idea/
