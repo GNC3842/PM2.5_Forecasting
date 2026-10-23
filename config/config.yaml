@@ -1,0 +1,54 @@
+# Liste des paramètres
+# Si le paramètre est `null`: `pm25.config.require()` échoue explicitement,
+
+timezone: Asia/Bangkok          # jours civils ; UTC+7, sans heure d'été
+
+paths:
+  raw: data/raw                 
+  external: data/external
+  interim: data/interim
+  processed: data/processed
+  manifest: data/manifest.csv
+
+forecast:
+  horizon_days: 1               # cible = jour t+1
+  emission_hour: null           # H : non décidé (dépend du délai de publication mesuré)
+  min_valid_hours_per_day: 18   # 18/24 ; seuil encore à sourcer (cf. problem_definition.md)
+
+openaq:
+  base_url: https://api.openaq.org/v3
+  api_key_env: OPENAQ_API_KEY
+  search_area:                  # zone de recherche des stations
+    coordinates: [21.0285, 105.8542]   # Hoan Kiem
+    radius_m: 25000             # maximum autorisé par l'API
+  min_seconds_between_calls: 1.1   # 60 req/min => 1 s minimum ; marge de 10 %
+  page_limit: 1000              # maximum autorisé
+  window_days: 365              # largeur des fenêtres de téléchargement des heures
+  sentinel_values: [-9999.0]    # valeurs manquantes codées (vu dans sensor.summary.min)
+  station_inclusion:            # seuils d'inclusion : décision de l'étape 3
+    min_valid_days: null
+    min_coverage_ratio: null
+    require_monitor: null
+
+openmeteo:
+  archive_url: https://archive-api.open-meteo.com/v1/archive
+  models: [era5, ecmwf_ifs]     # era5 : homogène, 5 j de retard ; ecmwf_ifs : 9 km, sans retard
+  model_start:                  # première date servie par chaque modèle
+    era5: 1940-01-01
+    ecmwf_ifs: 2017-01-01
+  hourly:                       # 10 variables : seuil au-delà duquel le coût devient fractionnaire
+    - temperature_2m
+    - relative_humidity_2m
+    - dew_point_2m
+    - wind_speed_10m
+    - wind_direction_10m
+    - precipitation
+    - surface_pressure
+    - pressure_msl
+    - cloud_cover
+    - shortwave_radiation
+  wind_speed_unit: ms
+  min_seconds_between_calls: 1.0
+
+aqi:
+  breakpoints: null             # bornes AQI EPA (révision 2024) : à saisir à l'étape 7
