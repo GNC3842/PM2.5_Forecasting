@@ -1,7 +1,6 @@
-# Liste des paramètres
-# Si le paramètre est `null`: `pm25.config.require()` échoue explicitement,
+# Params list, if it is `null`, the corresponding `pm25.config.require()` fails explicitly
 
-timezone: Asia/Bangkok          # jours civils ; UTC+7, sans heure d'été
+timezone: Asia/Bangkok #UTC+7
 
 paths:
   raw: data/raw                 
@@ -11,32 +10,32 @@ paths:
   manifest: data/manifest.csv
 
 forecast:
-  horizon_days: 1               # cible = jour t+1
-  emission_hour: null           # H : non décidé (dépend du délai de publication mesuré)
-  min_valid_hours_per_day: 18   # 18/24 ; seuil encore à sourcer (cf. problem_definition.md)
+  horizon_days: 1 #to aim at t+1 
+  emission_hour: null #Time H to emit the foreast
+  min_valid_hours_per_day: 18   # minimum number of valid hours to consider a day valid for training
 
 openaq:
-  base_url: https://api.openaq.org/v3
+  base_url: https://api.openaq.org/v3 #url of OpenAQ API V3
   api_key_env: OPENAQ_API_KEY
-  search_area:                  # zone de recherche des stations
+  search_area: #Params for search area of OpenAQ API
     coordinates: [21.0285, 105.8542]   # Hoan Kiem
-    radius_m: 25000             # maximum autorisé par l'API
-  min_seconds_between_calls: 1.1   # 60 req/min => 1 s minimum ; marge de 10 %
-  page_limit: 1000              # maximum autorisé
-  window_days: 365              # largeur des fenêtres de téléchargement des heures
-  sentinel_values: [-9999.0]    # valeurs manquantes codées (vu dans sensor.summary.min)
-  station_inclusion:            # seuils d'inclusion : décision de l'étape 3
+    radius_m: 25000             # 25 km
+  min_seconds_between_calls: 1.1   # Maximum is 60 requests / minutes, so we take 1.1s between calls to be safe
+  page_limit: 1000 #maximum number of results per page (max 1000)
+  window_days: 365 #window of days to search for measurements (max 365)
+  sentinel_values: [-9999.0] #missing values in OpenAQ data, to be treated as NaN
+  station_inclusion: #inclusion criteria for stations to be used in the project
     min_valid_days: null
     min_coverage_ratio: null
     require_monitor: null
 
 openmeteo:
-  archive_url: https://archive-api.open-meteo.com/v1/archive
-  models: [era5, ecmwf_ifs]     # era5 : homogène, 5 j de retard ; ecmwf_ifs : 9 km, sans retard
-  model_start:                  # première date servie par chaque modèle
+  archive_url: https://archive-api.open-meteo.com/v1/archive #url of Open-Meteo API
+  models: [era5, ecmwf_ifs]
+  model_start: 
     era5: 1940-01-01
     ecmwf_ifs: 2017-01-01
-  hourly:                       # 10 variables : seuil au-delà duquel le coût devient fractionnaire
+  hourly:  #variables to retrieve from Open-Meteo API (see https://open-meteo.com/en/docs#api_form for full list)
     - temperature_2m
     - relative_humidity_2m
     - dew_point_2m
@@ -47,8 +46,15 @@ openmeteo:
     - pressure_msl
     - cloud_cover
     - shortwave_radiation
-  wind_speed_unit: ms
-  min_seconds_between_calls: 1.0
+  wind_speed_unit: ms 
+  calls_per_minute: 550 #maximum number of calls per minute to Open-Meteo API (max 600)
+  days_per_call: 14
 
-aqi:
-  breakpoints: null             # bornes AQI EPA (révision 2024) : à saisir à l'étape 7
+aqi: #Air Quality Index (AQI) parameters for PM2.5, based on EPA standards
+  breakpoints:
+    - [9.0, Good]
+    - [35.4, Moderate]
+    - [55.4, Unhealthy for Sensitive Groups]
+    - [125.4, Unhealthy]
+    - [225.4, Very Unhealthy]
+    - [.inf, Hazardous]
