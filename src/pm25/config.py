@@ -1,16 +1,11 @@
-"""Accès aux paramètres de `config/config.yaml` et aux secrets de `.env`.
+"""Read the parameters of `config/config.yaml` and the secrets of `.env`.
 
-Pour rappel un paramètre `null` est une décision non prise. `require()` échoue
-au lieu de substituer un défaut.
+A parameter set to `null` is a decision not taken yet: `require()` raises an
+error instead of using a default value.
 """
 
-from __future__ import annotations
-
 import os
-import re
-from functools import cache
 from pathlib import Path
-from typing import Any
 
 import yaml
 
@@ -18,49 +13,69 @@ ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = ROOT / "config" / "config.yaml"
 ENV_PATH = ROOT / ".env"
 
-_ENV_LINE = re.compile(r"\s*([A-Za-z_][A-Za-z0-9_]*)\s*[:=]\s*(.*?)\s*$")
 
-
-@cache
-def load(path: Path | None = None): -> dict[str, Any]:
+def load(path=None) -> dict:
+    """Read the YAML config file and return it as a dictionary.
+    If no path is given, `config/config.yaml` is used.
     """
-    Charge et met en cache le fichier de configuration YAML pour éviter de le relire à chaque appel
-    Args:
-        Prends un cheminoptionnel vers un fichier de config YAML et sinon chemin par défaut utilisé
-    Returns:
-        Un dictionnaire contenant les paramètres de configuration
+    if path is None:
+        path = CONFIG_PATH
+    text = path.read_text(encoding="utf-8")
+    return yaml.safe_load(text)
+
+
+def require(dotted: str, config: dict = None):
+    """Read a key written like `a.b.c`.
+    Raises KeyError if the key does not exist, ValueError if its value is `null`.
     """
-    return yaml.safe_load((path or CONFIG_PATH).read_text(encoding="utf-8"))
-
-
-def require(dotted: str, config: dict[str, Any] | None = None) -> Any:
-    """Lit `a.b.c`. Échoue si la clé est absente ou si sa valeur est `null`."""
-    node: Any = load() if config is None else config
+    if config is None:
+        config = load()
+    node = config
     for part in dotted.split("."):
         if not isinstance(node, dict) or part not in node:
-            raise KeyError(f"{dotted} : clé absente de la configuration")
+            raise KeyError(f"{dotted} : key missing from the configuration")
         node = node[part]
+
     if node is None:
-        raise ValueError(f"{dotted} : décision non prise (null dans config.yaml)")
+        raise ValueError(f"{dotted} : no decision yet (null in config.yaml)")
     return node
 
 
 def path(name: str) -> Path:
-    """Chemin absolu d'un dossier de `paths`, créé s'il manque (sauf raw/external)."""
-    p = ROOT / require(f"paths.{name}")
-    if name in {"interim", "processed"}:
-        p.mkdir(parents=True, exist_ok=True)
-    return p
+    """Absolute path of a folder listed in `paths`.
+    `interim` and `processed` are created if missing; raw and external are never created.
+    """
+    folder = ROOT / require("paths." + name)
+    if name == "interim" or name == "processed":
+        folder.mkdir(parents=True, exist_ok=True)
+    return folder
 
 
 def secret(env_var: str) -> str:
-    """Secret depuis l'environnement, sinon depuis `.env`. Jamais affiché ni journalisé."""
-    if value := os.environ.get(env_var):
+    """Read a secret from the environment, or else from `.env`. Never print it."""
+    value = os.environ.get(env_var)
+    if value:
         return value
     if ENV_PATH.exists():
-        for line in ENV_PATH.read_text(encoding="utf-8").splitlines():
-            if line.lstrip().startswith("#"):
+        lines = ENV_PATH.read_text(encoding="utf-8").splitlines()
+        for line in lines:
+            line = line.strip()
+            if line == "" or line.startswith("#"):
                 continue
-            if (m := _ENV_LINE.match(line)) and m[1] == env_var:
-                return m[2].strip("\"'")
-    raise KeyError(f"{env_var} absent de l'environnement et de .env")
+
+            # the key and the value are separated by the first "=" or ":"
+            separator_index = -1
+            for i in range(len(line)):
+                if line[i] == "=" or line[i] == ":":
+                    separator_index = i
+                    break
+            if separator_index == -1:
+                continue
+
+            key = line[:separator_index].strip()
+            value = line[separator_index + 1:].strip()
+            value = value.strip("\"'")
+            if key == env_var:
+                return value
+
+    raise KeyError(f"{env_var} not found in the environment nor in .env")
