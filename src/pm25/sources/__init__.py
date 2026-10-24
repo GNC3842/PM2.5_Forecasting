@@ -1,0 +1,1 @@
+"""Collecte par source."""
