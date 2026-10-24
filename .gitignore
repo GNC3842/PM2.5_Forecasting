@@ -1,12 +1,11 @@
 # Secrets
 .env
 
-# Données : brutes et dérivées hors dépôt tant que l'enseignant n'a pas répondu
-# sur la taille du zip et l'inclusion des données. Les dossiers sont conservés via .gitkeep.
 data/raw/*/*
 data/interim/*
 data/processed/*
-!.gitkeep
+!**/.gitkeep
+# data/manifest.csv reste suivi : il prouve quelle version des données a servi.
 
 # Python
 __pycache__/
