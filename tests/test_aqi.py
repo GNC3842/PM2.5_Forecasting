@@ -20,8 +20,7 @@ from pm25 import aqi
         (975.0, "Hazardous"),
     ],
 )
-
-def test_category_for_each_borne(value, expected):
+def test_category_for_each_bound(value, expected):
     assert aqi.aqi_category(value) == expected
 
 
